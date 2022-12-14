@@ -1,0 +1,7 @@
+Black-Hole-Visualization-in-Two-Dimensional-Space/
+*.whl
+venv/
+*.png
+*.docx
+*.pdf
+*.tmp

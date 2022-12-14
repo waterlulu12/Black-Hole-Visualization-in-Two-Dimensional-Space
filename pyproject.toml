@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "lab 1"
+version = "0.1.0"
+description = ""
+authors = ["waterlulu12 <aatishshrestha123@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.23.5"
+glfw = "^2.5.5"
+pyopengl-accelerate = {path = "PyOpenGL_accelerate-3.1.6-cp39-cp39-win_amd64.whl"}
+pyopengl = {path = "PyOpenGL-3.1.6-cp39-cp39-win_amd64.whl"}
+ctypes-callable = "^1.0.4"
+PyGLM = "^2.6.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
