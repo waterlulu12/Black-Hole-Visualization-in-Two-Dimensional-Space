@@ -32,10 +32,11 @@ void main()
 
 # Animation Control
 speed = 10
-rotateDeg = 1.0
 smoothness = 1000
-r_smoothness = 1000
+scaleMax = 1 / 0.1
+switch = 1
 fps = 100
+r_smoothness = 1000
 tx = 0
 ty = 0
 
@@ -43,14 +44,13 @@ ty = 0
 def scaleAnimation(value):
     global scaleX, scaleY, rotateDeg, switch, tx, ty
 
+    tx -= 1 / smoothness
+
     transform = glm.mat4(1)
     transform = glm.translate(transform, glm.vec3(tx, ty, 0))
 
     loc = gl.glGetUniformLocation(program, "transform")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, glm.value_ptr(transform))
-
-    tx -= 1 / smoothness
-    # rotateDeg = rotateDeg + (value / r_smoothness)
 
     glut.glutTimerFunc(int(1000 / fps), scaleAnimation, speed)
 
@@ -93,12 +93,10 @@ for x in range(1, len(lightRay)):
 
 blackHoleVAO = None
 lightRayVAO = None
-vertexBuffer = None
-indicesBuffer = None
 
 
 def init():
-    global program, blackHoleVAO, lightRayVAO, vertexBuffer, indicesBuffer
+    global program, blackHoleVAO, lightRayVAO
 
     program = createProgram(
         compileShader(vertexShader, gl.GL_VERTEX_SHADER),
@@ -113,121 +111,65 @@ def init():
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vertexBuffer)
     gl.glBufferData(
         gl.GL_ARRAY_BUFFER,
-        blackHole.nbytes + lightRay.nbytes,
-        blackHole,
-        gl.GL_DYNAMIC_DRAW,
+        lightRay.nbytes + blackHole.nbytes,
+        lightRay,
+        gl.GL_STATIC_DRAW,
     )
-    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, blackHole.nbytes, blackHole)
-    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, blackHole.nbytes, lightRay.nbytes, lightRay)
+    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, lightRay.nbytes, lightRay)
+    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, lightRay.nbytes, blackHole.nbytes, blackHole)
 
     # Generate Indices Buffer
     indicesBuffer = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, indicesBuffer)
     gl.glBufferData(
-        gl.GL_ELEMENT_ARRAY_BUFFER,
-        lightIndices.nbytes,
-        lightIndices,
-        gl.GL_DYNAMIC_DRAW,
+        gl.GL_ELEMENT_ARRAY_BUFFER, lightIndices.nbytes, lightIndices, gl.GL_STATIC_DRAW
     )
 
-    blackHoleVAO = gl.glGenVertexArrays(1)
     lightRayVAO = gl.glGenVertexArrays(1)
+    blackHoleVAO = gl.glGenVertexArrays(1)
 
-    # Bind Black Hole
-
-    gl.glBindVertexArray(blackHoleVAO)
-    stride = blackHole.strides[0]
-    offset = ctypes.c_void_p(0)
+    # Get Shader Attributes
     ploc = gl.glGetAttribLocation(program, "position")
-    gl.glEnableVertexAttribArray(ploc)
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vertexBuffer)
-    gl.glVertexAttribPointer(ploc, 3, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
-
-    offset = ctypes.c_void_p(blackHole.dtype["position"].itemsize)
     cloc = gl.glGetAttribLocation(program, "color")
-    gl.glEnableVertexAttribArray(cloc)
-    gl.glVertexAttribPointer(cloc, 4, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
 
     # Bind Light
 
     gl.glBindVertexArray(lightRayVAO)
     stride = lightRay.strides[0]
-    offset = ctypes.c_void_p(blackHole.nbytes)
+    offset = ctypes.c_void_p(0)
     gl.glEnableVertexAttribArray(ploc)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vertexBuffer)
     gl.glVertexAttribPointer(ploc, 3, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
 
-    offset = ctypes.c_void_p(blackHole.nbytes + lightRay.dtype["position"].itemsize)
+    offset = ctypes.c_void_p(lightRay.dtype["position"].itemsize)
     gl.glEnableVertexAttribArray(cloc)
     gl.glVertexAttribPointer(cloc, 4, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
     gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, indicesBuffer)
 
+    # Bind Black Hole
+    stride = blackHole.strides[0]
+    offset = ctypes.c_void_p(lightRay.nbytes)
+    gl.glBindVertexArray(blackHoleVAO)
+    gl.glEnableVertexAttribArray(ploc)
+    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vertexBuffer)
+    gl.glVertexAttribPointer(ploc, 3, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
+
+    offset = ctypes.c_void_p(lightRay.nbytes + blackHole.dtype["position"].itemsize)
+    gl.glEnableVertexAttribArray(cloc)
+    gl.glVertexAttribPointer(cloc, 4, gl.GL_FLOAT, gl.GL_FALSE, stride, offset)
+
 
 def render():
-    global lightRay
     gl.glClear(gl.GL_COLOR_BUFFER_BIT)
     gl.glClearColor(1.0, 1.0, 1.0, 1.0)
     gl.glLineWidth(2)
 
-    transform = glm.mat4(1)
-    loc = gl.glGetUniformLocation(program, "transform")
-    gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, glm.value_ptr(transform))
+    gl.glBindVertexArray(lightRayVAO)
+    gl.glDrawElements(gl.GL_LINES, len(lightIndices), gl.GL_UNSIGNED_INT, None)
 
+    gl.glLoadIdentity()
     gl.glBindVertexArray(blackHoleVAO)
     gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, len(blackHole))
-
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vertexBuffer)
-    gl.glBufferData(
-        gl.GL_ARRAY_BUFFER,
-        blackHole.nbytes + lightRay.nbytes,
-        blackHole,
-        gl.GL_DYNAMIC_DRAW,
-    )
-
-    # send new data
-
-    lineVertices = lightRay["position"]
-
-    lightRay = np.zeros(
-        len(lineVertices),
-        [("position", np.float32, 2), ("color", np.float32, 4)],
-    )
-    i = 0
-
-    for x in lineVertices:
-        if i < 5:
-            lineVertices[i] = [x[0], x[1] - (np.cos((np.pi / 180) * 30)) / 100]
-        i += 1
-
-    lightRay["position"] = lineVertices
-    lightRay["color"] = list(map(lineColors, lineVertices))
-    lightIndices = np.array([], dtype=np.int32)
-    for x in range(1, len(lightRay)):
-        if (x % (int(len(lightRay) / len(lineHeights)))) != 0:
-            lightIndices = np.append(lightIndices, int(x - 1))
-            lightIndices = np.append(lightIndices, int(x))
-
-    gl.glBufferData(
-        gl.GL_ARRAY_BUFFER,
-        blackHole.nbytes + lightRay.nbytes,
-        blackHole,
-        gl.GL_DYNAMIC_DRAW,
-    )
-    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, blackHole.nbytes, blackHole)
-    gl.glBufferSubData(gl.GL_ARRAY_BUFFER, blackHole.nbytes, lightRay.nbytes, lightRay)
-
-    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, indicesBuffer)
-    gl.glBufferData(
-        gl.GL_ELEMENT_ARRAY_BUFFER,
-        lightIndices.nbytes,
-        lightIndices,
-        gl.GL_DYNAMIC_DRAW,
-    )
-
-    scaleAnimation(speed)
-    gl.glBindVertexArray(lightRayVAO)
-
-    gl.glDrawElements(gl.GL_LINES, len(lightIndices), gl.GL_UNSIGNED_INT, None)
 
     glut.glutSwapBuffers()
     glut.glutPostRedisplay()
@@ -249,7 +191,9 @@ glut.glutCreateWindow("Black Hole Visualization")
 glut.glutReshapeWindow(800, 800)
 glut.glutReshapeFunc(reshape)
 init()
+scaleAnimation(speed)
 glut.glutDisplayFunc(render)
+glut.glutPostRedisplay()
 glut.glutKeyboardFunc(keyboard)
 
 glut.glutMainLoop()
