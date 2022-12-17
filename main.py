@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-import glm
 from compileShader import compileShader
 from createProgram import createProgram
 from blackHole import blackHoleGen
@@ -14,7 +13,6 @@ vertexShader = """
 attribute vec4 color;
 attribute vec2 position;
 varying vec4 v_color;
-uniform mat4 transform;
 void main()
 {
   gl_Position = vec4(position, 0.0, 1.0);
@@ -38,8 +36,9 @@ def lineColors(n):
 # Arbitary Black Hole Constants
 c = 3
 G = 6
-M = 12
-r = (2 * G * M) / c * c
+M = 13
+rs = (2 * 10 * G * M) / (c * c)
+
 resolution = 800
 
 (
@@ -48,7 +47,7 @@ resolution = 800
     photonRing,
     blackHoleRing3,
     accretionDisk,
-) = blackHoleGen(0, 0, r, resolution)
+) = blackHoleGen(0, 0, rs, resolution)
 
 lightHeights = photonHeightGen(0.0, 0.98, 0.1)
 lightRayVertices = photonGen(0.8, lightHeights, 100)
@@ -92,8 +91,7 @@ smoothness = 0.0001
 def blackHoleAnimation(value):
     global scaleX, scaleY, rotateDeg, switch, tx, ty, lightRayVertices
 
-    arbitaryRadius = r / resolution
-    (2 * G * M) / c * c
+    arbitaryRadius = rs / resolution
     arbitaryMass = (arbitaryRadius * (c * c)) / (2 * (G))
     arbitarySpeed = np.sqrt((arbitaryRadius / (2 * G * M)))
     arbitarySpeed = arbitarySpeed * 1.4

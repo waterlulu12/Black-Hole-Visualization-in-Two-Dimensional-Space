@@ -40,7 +40,7 @@ def blackHoleGen(xC, yC, radius, resolution):
     blackHoleRing1["color"] = list(map(blackHoleRing1Colors, circleVertices))
 
     # Photon Ring
-    circleVertices = midPointCircle(xC, yC, int(radius * 2.2), resolution)
+    circleVertices = midPointCircle(xC, yC, int(radius * 2.4), resolution)
     photonRing = np.zeros(
         len(circleVertices),
         [("position", np.float32, 2), ("color", np.float32, 4)],
