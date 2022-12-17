@@ -5,7 +5,7 @@ import glm
 from compileShader import compileShader
 from createProgram import createProgram
 from midPointCircle import midPointCircle
-from lineGenerator import lineGen, lineHeightGen
+from photonGenerator import lineGen, photonHeightGen
 import OpenGL.GL as gl
 import OpenGL.GLUT as glut
 
@@ -71,7 +71,7 @@ blackHole = np.zeros(
 blackHole["position"] = circleVertices
 blackHole["color"] = list(map(blackHoleColors, circleVertices))
 
-lineHeights = lineHeightGen(0.5, 0.9, 0.05)
+lineHeights = photonHeightGen(0.5, 0.9, 0.05)
 print(lineHeights)
 
 lineVertices = lineGen(0.2, lineHeights, 100)
