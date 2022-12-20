@@ -9,5 +9,5 @@ def compileShader(source, type):
     if not gl.glGetShaderiv(shader, gl.GL_COMPILE_STATUS):
         error = gl.glGetShaderInfoLog(shader).decode()
         print(error)
-        raise RuntimeError("{source} shader compilation error")
+        raise RuntimeError(f"{source} shader compilation error")
     return shader

@@ -1,4 +1,5 @@
 import sys
+import glm
 import numpy as np
 from compileShader import compileShader
 from createProgram import createProgram
@@ -35,11 +36,11 @@ def lineColors(n):
 
 # Arbitary Black Hole Constants
 c = 3
-G = 6
-M = 13
-rs = (2 * 10 * G * M) / (c * c)
+G = 0.667
+M = 1300
+rs = (2 * G * M) / (c * c)
 
-resolution = 800
+resolution = 1000
 
 (
     blackHole,
@@ -49,8 +50,8 @@ resolution = 800
     accretionDisk,
 ) = blackHoleGen(0, 0, rs, resolution)
 
-lightHeights = photonHeightGen(0.0, 0.98, 0.1)
-lightRayVertices = photonGen(0.8, lightHeights, 100)
+lightHeights = photonHeightGen(0.0, 0.90, 0.08)
+lightRayVertices = photonGen(0.6, lightHeights, 80)
 
 
 lightRay = np.zeros(
@@ -77,41 +78,37 @@ blackHoleRing1VAO = None
 blackHoleRing2VAO = None
 blackHoleRing3VAO = None
 blackHoleRing4VAO = None
-lightRayVAO = None
+photonRayVAO = None
 vertexBuffer = None
 indicesBuffer = None
 
 
 # Animation Control
-fps = 30
+fps = 100
 speed = 100
-smoothness = 0.0001
 
 
 def blackHoleAnimation(value):
     global scaleX, scaleY, rotateDeg, switch, tx, ty, lightRayVertices
 
-    arbitaryRadius = rs / resolution
-    arbitaryMass = (arbitaryRadius * (c * c)) / (2 * (G))
-    arbitarySpeed = np.sqrt((arbitaryRadius / (2 * G * M)))
-    arbitarySpeed = arbitarySpeed * 1.4
-    arbitaryG = (arbitaryRadius * arbitarySpeed * arbitarySpeed) / (2 * arbitaryMass)
-    arbitaryG = arbitaryG * 1200
+    adjustedRadius = rs / resolution
+    adjustedMass = M / resolution
+    adjustedSpeed = c / resolution
+    adjustedG = (adjustedRadius * adjustedSpeed * adjustedSpeed) / (2 * adjustedMass)
+    adjustedG = adjustedG * 1200
     # send new data
     for i, x in enumerate(tempVertices):
         dist = np.linalg.norm([0.0, 0.0] - tempVertices[i])
-        d2 = np.array([0.0, arbitaryRadius * 0.92])
-        d3 = np.array([0.0, arbitaryRadius * 0.9])
+        dist = abs(dist)
+        d2 = np.array([0.0, adjustedRadius * 0.25])
         normal_distance = np.linalg.norm([0.0, 0.0] - d2)
         normal_distance = abs(normal_distance)
-        second_distance = np.linalg.norm([0.0, 0.0] - d3)
-
         if dist != 0.0:
+            factor = adjustedG * adjustedMass / (dist * dist)
+            factor = factor
             if dist > normal_distance:
-                factor = arbitaryG * arbitaryMass / (dist * dist)
-                factor = factor * 0.1
-                tempVertices[i][0] -= arbitarySpeed + (tempVertices[i][0] * factor)
-                tempVertices[i][1] -= tempVertices[i][1] * factor
+                tempVertices[i][0] -= adjustedSpeed + tempVertices[i][0] * factor
+                tempVertices[i][1] -= tempVertices[i][1] * factor * 2
             else:
                 tempVertices[i][0] = 0
                 tempVertices[i][1] = 0
@@ -135,7 +132,7 @@ def blackHoleAnimation(value):
 
 
 def init():
-    global program, blackHoleVAO, lightRayVAO, blackHoleRing1VAO, blackHoleRing2VAO, blackHoleRing3VAO, blackHoleRing4VAO, vertexBuffer, indicesBuffer
+    global program, blackHoleVAO, photonRayVAO, blackHoleRing1VAO, blackHoleRing2VAO, blackHoleRing3VAO, blackHoleRing4VAO, vertexBuffer, indicesBuffer
 
     program = createProgram(
         compileShader(vertexShader, gl.GL_VERTEX_SHADER),
@@ -200,7 +197,7 @@ def init():
     blackHoleRing2VAO = gl.glGenVertexArrays(1)
     blackHoleRing1VAO = gl.glGenVertexArrays(1)
     blackHoleVAO = gl.glGenVertexArrays(1)
-    lightRayVAO = gl.glGenVertexArrays(1)
+    photonRayVAO = gl.glGenVertexArrays(1)
 
     # Get Attrib Locatons
     ploc = gl.glGetAttribLocation(program, "position")
@@ -248,7 +245,7 @@ def init():
     )
 
     vertexBinder(
-        lightRayVAO,
+        photonRayVAO,
         vertexBuffer,
         accretionDisk.nbytes
         + blackHoleRing3.nbytes
@@ -267,10 +264,6 @@ def render():
     gl.glClearColor(0.0, 0.0, 0.0, 0.0)
     gl.glPointSize(3)
 
-    # transform = glm.mat4(1)
-    # loc = gl.glGetUniformLocation(program, "transform")
-    # gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, glm.value_ptr(transform))
-
     gl.glBindVertexArray(blackHoleRing4VAO)
     gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, len(accretionDisk))
 
@@ -286,7 +279,7 @@ def render():
     gl.glBindVertexArray(blackHoleVAO)
     gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, len(blackHole))
 
-    gl.glBindVertexArray(lightRayVAO)
+    gl.glBindVertexArray(photonRayVAO)
     gl.glDrawArrays(gl.GL_POINTS, 0, len(lightRay))
 
     glut.glutSwapBuffers()
@@ -306,7 +299,7 @@ glut.glutInit()
 
 glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA)  # type: ignore #ignore
 glut.glutCreateWindow("Black Hole Visualization")
-glut.glutReshapeWindow(resolution, resolution)
+glut.glutReshapeWindow(800, 800)
 glut.glutReshapeFunc(reshape)
 init()
 glut.glutDisplayFunc(render)
